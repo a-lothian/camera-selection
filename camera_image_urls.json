@@ -1,0 +1,37 @@
+{
+  "note": "Direct image URLs extracted from each manufacturer's official product page (mostly the og:image meta tag). For the 5 Nikon entries where image_url is null, WebFetch's page-to-markdown conversion dropped the meta tags even though the page loads fine normally — use requests + BeautifulSoup on product_page (look for <meta property=\"og:image\"> or a 'FrontLeft-...png' asset on images.cdn.us-central1.gcp.commercetools.com) to pull those five yourself.",
+  "cameras": [
+    {"id": "sony-zv-1f", "model": "Sony ZV-1F", "product_page": "https://www.sony.com.au/compact-cameras/products/zv-1f", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/Primary_image-17?$S7Product$&fmt=png-alpha"},
+    {"id": "sony-zv-1", "model": "Sony ZV-1", "product_page": "https://www.sony.com.au/compact-cameras/products/zv-1", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/Primary_image-15?$S7Product$&fmt=png-alpha"},
+    {"id": "sony-zv-1-ii", "model": "Sony ZV-1 II", "product_page": "https://www.sony.com.au/compact-cameras/products/zv-1m2", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/Primary_image_black-1?$S7Product$&fmt=png-alpha"},
+    {"id": "sony-zv-e10-ii", "model": "Sony ZV-E10 II", "product_page": "https://www.sony.com.au/electronics/interchangeable-lens-cameras/zv-e10m2", "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Sony_ZV-E10_Mark_II.tiff/lossy-page1-1280px-Sony_ZV-E10_Mark_II.tiff.jpg", "credit": "Photo by PJ, CC BY 4.0, via Wikimedia Commons (sony.com.au blocks scripted downloads)"},
+    {"id": "sony-a6700", "model": "Sony A6700", "product_page": "https://www.sony.com.au/interchangeable-lens-cameras/products/ilce-6700", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/og-4?$S7Product$&fmt=png-alpha"},
+    {"id": "sony-zv-e10", "model": "Sony ZV-E10", "product_page": "https://www.sony.com.au/interchangeable-lens-cameras/products/zv-e10", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/Primary_image?$S7Product$&fmt=png-alpha"},
+    {"id": "sony-a6400", "model": "Sony a6400", "product_page": "https://www.sony.com.au/interchangeable-lens-cameras/products/ilce-6400", "image_url": "https://sony.scene7.com/is/image/sonyglobalsolutions/02_Primary_image-2?$S7Product$&fmt=png-alpha"},
+
+    {"id": "fujifilm-x100vi", "model": "Fujifilm X100VI", "product_page": "https://www.fujifilm-x.com/en-au/products/cameras/x100vi/", "image_url": "https://fujifilm-x.b-cdn.net/wp-content/uploads/2024/02/stjw_x100vi_thum.jpg"},
+    {"id": "fujifilm-x-m5", "model": "Fujifilm X-M5", "product_page": "https://www.fujifilm-x.com/en-us/products/cameras/x-m5/", "image_url": "https://fujifilm-x.b-cdn.net/wp-content/uploads/2024/10/product_thumb_x-m5.jpg"},
+    {"id": "fujifilm-x-t30-iii", "model": "Fujifilm X-T30 III", "product_page": "https://www.fujifilm-x.com/en-us/products/cameras/x-t30-iii/", "image_url": "https://fujifilm-x.b-cdn.net/wp-content/uploads/2025/10/thum_x-t30-iii-004c6e21.webp"},
+    {"id": "fujifilm-x-half", "model": "Fujifilm X Half", "product_page": "https://www.fujifilm-x.com/en-us/products/cameras/x-hf1/", "image_url": "https://fujifilm-x.b-cdn.net/wp-content/uploads/2025/05/x-hf1-placeholder-thumbnail-charcoal-73646e81-8615-4f61-a627-cc1354e44101.jpg"},
+    {"id": "fujifilm-x-e5", "model": "Fujifilm X-E5", "product_page": "https://www.fujifilm-x.com/en-us/products/cameras/x-e5/", "image_url": "https://fujifilm-x.b-cdn.net/wp-content/uploads/2025/06/thum_X-E5.jpg"},
+
+    {"id": "canon-g7-x-mark-iii", "model": "Canon G7 X Mark III", "product_page": "https://store.canon.com.au/powershot-g7xiiis.html", "image_url": "https://s7d1.scene7.com/is/image/canon/3637C001_powershot-g7-x-mark-iii-black_primary?fmt=webp-alpha"},
+    {"id": "canon-powershot-v1", "model": "Canon PowerShot V1", "product_page": "https://www.canon.com.au/cameras/powershot-v1", "image_url": "https://www.canon.com.au/-/media/images/canon/products/compact-cameras/powershot-v1/tile-powershotv1-570x390.jpg"},
+    {"id": "canon-powershot-sx740-hs", "model": "Canon PowerShot SX740 HS", "product_page": "https://www.canon.com.au/cameras/powershot-sx740-hs", "image_url": "https://www.canon.com.au/-/media/images/canon/products/powershot-sx740-hs/hero_sx740.jpg"},
+    {"id": "canon-eos-r1000", "model": "Canon EOS R1000 (no such model — using EOS R100 as stand-in, see cameras.json notes)", "product_page": "https://www.canon.com.au/cameras/eos-r100", "image_url": "https://www.canon.com.au/-/media/images/canon/products/mirrorless-cameras/eos-r100/hero-eosr100-1200x1200.jpg"},
+    {"id": "canon-eos-r50", "model": "Canon EOS R50", "product_page": "https://www.canon.com.au/cameras/eos-r50", "image_url": "https://www.canon.com.au/-/media/images/canon/products/mirrorless-cameras/eos-r50/hero-eosr50-1200x1200px.jpg"},
+
+    {"id": "ricoh-gr-iii", "model": "Ricoh GR III", "product_page": "https://us.ricoh-imaging.com/product/gr-iii/", "image_url": "https://us.ricoh-imaging.com/wp-content/uploads/2019/03/gr-iii-500-1.png"},
+    {"id": "ricoh-gr-iiix", "model": "Ricoh GR IIIx", "product_page": "https://us.ricoh-imaging.com/product/griiix/", "image_url": "https://us.ricoh-imaging.com/wp-content/uploads/2021/09/grIII-x.png"},
+    {"id": "ricoh-gr-iv", "model": "Ricoh GR IV", "product_page": "https://us.ricoh-imaging.com/product/gr-iv/", "image_url": "https://us.ricoh-imaging.com/wp-content/uploads/2025/08/gr-IV.png"},
+    {"id": "ricoh-gr-iv-monochrome", "model": "Ricoh GR IV Monochrome", "product_page": "https://us.ricoh-imaging.com/product/gr-iv-monochrome/", "image_url": "https://us.ricoh-imaging.com/wp-content/uploads/2026/01/griv-monochrome-list.png"},
+
+    {"id": "nikon-z30", "model": "Nikon Z30", "product_page": "https://www.nikonusa.com/p/z-30/1737/overview", "image_url": null},
+    {"id": "nikon-z50", "model": "Nikon Z50", "product_page": "https://www.nikonusa.com/p/z-50/1634/overview", "image_url": "https://images.cdn.us-central1.gcp.commercetools.com/f7c8f2bb-aff1-4581-a826-1ad2527be222/FrontLeft-1634-Z50-l--LQ7AmZI.png"},
+    {"id": "nikon-z50-ii", "model": "Nikon Z50II", "product_page": "https://www.nikonusa.com/p/z50ii/1788/overview", "image_url": "https://images.cdn.us-central1.gcp.commercetools.com/f7c8f2bb-aff1-4581-a826-1ad2527be222/Z50II_16-50DX-34-lef-THHYS4Jm.png"},
+    {"id": "nikon-zfc", "model": "Nikon Zfc", "product_page": "https://www.nikonusa.com/p/z-fc/1757/overview", "image_url": null},
+    {"id": "nikon-zf", "model": "Nikon Zf", "product_page": "https://www.nikonusa.com/p/z-f/1761/overview", "image_url": null},
+    {"id": "nikon-z5", "model": "Nikon Z5", "product_page": "https://www.nikonusa.com/p/z-5/1649/overview", "image_url": "https://images.cdn.us-central1.gcp.commercetools.com/f7c8f2bb-aff1-4581-a826-1ad2527be222/FrontLeft-1649-Z5-le-_WYJtNA0.png"},
+    {"id": "nikon-z5-ii", "model": "Nikon Z5II", "product_page": "https://www.nikonusa.com/p/z5ii/1680/overview", "image_url": "https://images.cdn.us-central1.gcp.commercetools.com/f7c8f2bb-aff1-4581-a826-1ad2527be222/1680-z5ii-34-left-u2-9MEI-.png"}
+  ]
+}

@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camera Selection</title>
+<meta name="description" content="Compare cameras by price, plotted against the spec that matters to you.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='1' width='30' height='30' rx='8' fill='%23fffdf8' stroke='%231b1a17' stroke-width='2'/%3E%3Ccircle cx='11' cy='20' r='3.5' fill='%234a3aa7'/%3E%3Ccircle cx='20' cy='11' r='3.5' fill='%23e34948'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #f4efe6;
+    --surface: #fffdf8;
+    --surface-2: #f7f2e8;
+    --ink: #1b1a17;
+    --ink-2: #45423b;        /* secondary text, ~9:1 on surface */
+    --ink-3: #5f5a50;        /* muted text / ticks, ~6.5:1 on surface */
+    --line: rgba(27, 26, 23, 0.14);
+    --line-strong: rgba(27, 26, 23, 0.28);
+    --chart-bg: #e1e1e199;     /* grey plot panel, set apart from the cream cards */
+    --grid: #adadad;         /* light gridlines read on the grey */
+    --axis: #a89f8f;
+    --accent: #d9572b;       /* UI accent (terracotta) — not used by any brand */
+    --accent-soft: #fbe6da;
+    --accent-ink: #9c3712;
+    --radius: 18px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 2px rgba(27, 26, 23, 0.05), 0 4px 16px rgba(27, 26, 23, 0.04);
+    --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+  button, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 20px 20px 48px;
+    display: grid;
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    min-width: 0;
+  }
+
+  /* ---------- controls ---------- */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .control { display: inline-flex; align-items: center; gap: 8px; }
+  .control > .eyebrow { white-space: nowrap; }
+  .spacer { flex: 1; }
+  .select {
+    position: relative; display: inline-flex; align-items: center;
+    border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface);
+  }
+  .select select {
+    appearance: none; -webkit-appearance: none;
+    border: 0; background: transparent; border-radius: 999px;
+    font-size: 14px; font-weight: 500;
+    padding: 7px 34px 7px 14px; cursor: pointer;
+  }
+  .select::after {
+    content: ""; position: absolute; right: 14px; top: 50%;
+    width: 7px; height: 7px; margin-top: -5px;
+    border-right: 2px solid var(--ink-2); border-bottom: 2px solid var(--ink-2);
+    transform: rotate(45deg); pointer-events: none;
+  }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+  .seg button {
+    border: 0; background: transparent; border-radius: 999px;
+    font-size: 13px; font-weight: 500; padding: 5px 12px; cursor: pointer; color: var(--ink-2);
+  }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .seg button:not([aria-pressed="true"]):hover { background: rgba(27, 26, 23, 0.06); color: var(--ink); }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  .icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+  .icon-btn:disabled { opacity: 0.4; cursor: default; }
+  .text-btn {
+    height: 34px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .text-btn:hover:not(:disabled) { background: var(--surface-2); }
+  .text-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 18px 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 12px 5px 9px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .chip .count { color: var(--ink-3); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .chip:hover { background: var(--surface-2); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .chip[aria-pressed="true"] .count { color: rgba(255, 253, 248, 0.75); }
+  .legend.filtering .chip[aria-pressed="false"] { opacity: 0.55; }
+  .chip svg { flex: none; overflow: visible; }
+  .legend .clear { border: 0; background: none; color: var(--accent-ink); font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px 6px; }
+
+  /* ---------- chart ---------- */
+  .chart-wrap { position: relative; margin: 12px 12px 0; padding: 4px 8px 0; overflow: hidden; background: var(--chart-bg); border-radius: 14px; }
+  #chart { display: block; width: 100%; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+  #chart.zoomed { touch-action: none; }
+  #chart.dragging { cursor: grabbing; }
+  #chart .gridline { stroke: var(--grid); }
+  #chart .axis { stroke: var(--axis); }
+  #chart .tick { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+  #chart .axis-title { font-family: var(--sans); font-size: 13px; font-weight: 600; fill: var(--ink-2); }
+  #chart .pt { cursor: pointer; outline: none; }
+  #chart .pt .dot { stroke: var(--surface); stroke-width: 2; transition: transform 0.12s ease; transform-box: fill-box; transform-origin: center; }
+  #chart .pt:hover .dot, #chart .pt:focus-visible .dot { transform: scale(1.45); }
+  #chart .pt .hit { fill: transparent; }
+  #chart .pt .halo { fill: none; stroke: var(--ink); stroke-width: 2; }
+  #chart .sel-label { font-family: var(--sans); font-size: 13px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--chart-bg); stroke-width: 4px; stroke-linejoin: round; }
+  #chart.dimmed .pt:not(.selected) { opacity: 0.5; }
+  .chart-foot {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px;
+    padding: 6px 18px 14px; font-size: 13px; color: var(--ink-3);
+  }
+  .empty { padding: 72px 24px; text-align: center; color: var(--ink-2); }
+  .empty code, footer code { font-family: var(--mono); font-size: 0.92em; background: var(--surface-2); padding: 2px 6px; border-radius: 6px; }
+
+  .tooltip {
+    position: absolute; z-index: 5; pointer-events: none;
+    display: grid; grid-template-columns: 84px auto; gap: 12px; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(27, 26, 23, 0.16);
+    padding: 10px 14px 10px 10px; min-width: 220px;
+    opacity: 0; transform: translateY(4px); transition: opacity 0.12s, transform 0.12s;
+  }
+  .tooltip.show { opacity: 1; transform: none; }
+  .tooltip .thumb { width: 84px; height: 64px; border-radius: 8px; }
+  .tooltip .name { font-weight: 600; line-height: 1.25; }
+  .tooltip .brand { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+  .tooltip .vals { font-size: 14px; color: var(--ink-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tooltip .vals strong { color: var(--ink); font-weight: 600; }
+
+  /* shared thumbnail box with a soft graph-paper texture */
+  .thumb {
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    background-color: var(--surface-2);
+    background-image:
+      linear-gradient(rgba(27, 26, 23, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27, 26, 23, 0.05) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+  .thumb img { width: 86%; height: 86%; object-fit: contain; }
+  .initials { font-weight: 600; font-size: 22px; color: var(--ink-2); }
+
+  /* ---------- detail ---------- */
+  .detail { display: grid; grid-template-columns: minmax(260px, 400px) 1fr; overflow: hidden; border-radius: var(--radius); }
+  .detail-media { padding: 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; }
+  .detail-media .thumb { aspect-ratio: 4 / 3; border-radius: 14px; }
+  .detail-media .thumb .initials { font-size: 56px; }
+  .detail-main { padding: 22px 24px 24px; min-width: 0; }
+  .detail-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 4px 12px 4px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line);
+    font-size: 14px; font-weight: 500;
+  }
+  /* 2×2 grid: name + price | product button, then type/year | eBay button — each row lines up */
+  .detail-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 20px; margin: 12px 0 20px; }
+  .detail-head .title-row { grid-area: 1 / 1; }
+  .detail-head .sub-row { grid-area: 2 / 1; }
+  .detail-head .btn-product { grid-area: 1 / 2; }
+  .detail-head .btn-ebay { grid-area: 2 / 2; }
+  .detail-head .btn-primary { justify-content: space-between; white-space: nowrap; }
+  .label-short { display: none; }
+  .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; }
+  .detail h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.05; letter-spacing: -0.02em; font-weight: 600; margin: 0; }
+  .price-big { font-size: clamp(28px, 3.6vw, 40px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; }
+  .sub-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+  .detail .sub { color: var(--ink-2); }
+  .rank { font-size: 13px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); padding: 4px 10px; border-radius: 999px; }
+  .specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .spec { background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 14px; }
+  .spec .k { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+  .spec .v { font-size: 17px; font-weight: 600; margin-top: 1px; }
+  .notes { margin-top: 18px; color: var(--ink-2); max-width: 70ch; }
+  .notes p { margin: 4px 0 0; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff; text-decoration: none;
+    padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 14px;
+  }
+  .btn-primary:hover { background: var(--accent-ink); }
+  .btn-ebay { background: #1f63c6; }     /* ~5:1 with white text */
+  .btn-ebay:hover { background: #164a96; }
+  .close-btn { flex: none; }
+  .detail-enter { animation: rise 0.22s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- all cameras ---------- */
+  .list-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .list-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+  .list-head .count { color: var(--ink-3); font-weight: 500; margin-left: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 16px; }
+  .cam {
+    text-align: left; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 10px 14px; display: flex; flex-direction: column; gap: 4px;
+    transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s;
+  }
+  .cam:hover { border-color: var(--line-strong); box-shadow: 0 6px 18px rgba(27, 26, 23, 0.08); transform: translateY(-1px); }
+  .cam[aria-current="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .cam .thumb { aspect-ratio: 4 / 3; border-radius: 10px; margin-bottom: 8px; }
+  .cam .brand { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ink-2); padding: 0 4px; }
+  .cam .model { font-size: 17px; font-weight: 600; line-height: 1.25; padding: 0 4px; }
+  .cam .meta { font-size: 13.5px; color: var(--ink-2); padding: 0 4px; }
+  .cam .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: auto; padding: 8px 4px 0; }
+  .cam .price { font-size: 20px; font-weight: 600; }
+  .cam .sortval { font-size: 13px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+
+  .hint-touch { display: none; }
+  @media (pointer: coarse) { .hint-touch { display: inline; } .hint-mouse { display: none; } }
+
+  footer { padding: 4px 8px; font-size: 13px; color: var(--ink-3); text-align: center; }
+
+  @media (max-width: 760px) {
+    .page { padding: 10px 10px 32px; gap: 10px; }
+    .controls { padding: 12px 14px; }
+    .spacer { display: none; }
+    .legend { padding: 10px 14px 0; }
+    .chart-wrap { margin: 10px 8px 0; padding: 4px 0 0; }
+    .detail { grid-template-columns: 1fr; }
+    .detail-media { border-right: 0; border-bottom: 1px solid var(--line); padding: 14px; }
+    .detail-main { padding: 18px; }
+    .detail-head { grid-template-columns: 1fr 1fr; }
+    .detail-head .title-row { grid-area: 1 / 1 / 2 / 3; }
+    .detail-head .sub-row { grid-area: 2 / 1 / 3 / 3; }
+    .detail-head .btn-product { grid-area: 3 / 1; }
+    .detail-head .btn-ebay { grid-area: 3 / 2; }
+    .detail-head .btn-primary { justify-content: center; padding: 9px 10px; }
+    .label-long { display: none; }
+    .label-short { display: inline; }
+    .specs { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .spec { padding: 8px 12px; }
+    .spec .v { font-size: 15.5px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
+    .cam .model { font-size: 15px; }
+    .tooltip { grid-template-columns: 64px auto; min-width: 190px; }
+    .tooltip .thumb { width: 64px; height: 50px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="card" aria-label="Price chart">
+    <div class="controls">
+      <label class="control">
+        <span class="eyebrow">Compare price with</span>
+        <span class="select"><select id="y-select"></select></span>
+      </label>
+      <div class="control">
+        <span class="eyebrow">Type</span>
+        <span class="seg" role="group" aria-label="Camera type" id="type-seg"></span>
+      </div>
+      <span class="spacer"></span>
+      <div class="control" role="group" aria-label="Zoom">
+        <button type="button" class="icon-btn" id="zoom-out" aria-label="Zoom out">−</button>
+        <button type="button" class="icon-btn" id="zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" class="text-btn" id="zoom-reset" disabled>Reset view</button>
+      </div>
+    </div>
+    <div class="legend" id="legend" role="group" aria-label="Brands (click to filter)"></div>
+    <div class="chart-wrap" id="chart-wrap">
+      <svg id="chart" role="img" aria-label="Scatter plot of camera price"></svg>
+      <div class="tooltip" id="tooltip" aria-hidden="true"></div>
+    </div>
+    <div class="chart-foot">
+      <span id="chart-status"></span>
+      <span class="hint-mouse">Scroll to zoom · drag to pan · click empty space to deselect</span>
+      <span class="hint-touch">Pinch or use + to zoom · drag to pan once zoomed</span>
+    </div>
+  </section>
+
+  <section class="card" id="detail" aria-live="polite"></section>
+
+  <section class="card" id="all" aria-labelledby="all-title">
+    <div class="list-head">
+      <h2 id="all-title">All cameras<span class="count" id="list-count"></span></h2>
+      <label class="control">
+        <span class="eyebrow">Sort by</span>
+        <span class="select"><select id="sort-select"></select></span>
+      </label>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <footer>Data from <code>cameras.json</code> · add cameras with <code>uv run CameraInput.py</code></footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- configuration ----------
+  // Brand colours come from a validated categorical palette; every brand also gets
+  // its own marker shape so identity never relies on colour alone.
+  const BRAND_STYLE = {
+    Sony:     { color: "#4a3aa7", shape: "circle" },
+    Canon:    { color: "#e34948", shape: "square" },
+    Nikon:    { color: "#eda100", shape: "triangle" },
+    Fujifilm: { color: "#1baf7a", shape: "diamond" },
+    Ricoh:    { color: "#2a78d6", shape: "tridown" },
+  };
+  const EXTRA_STYLES = [
+    { color: "#eb6834", shape: "circle" },
+    { color: "#e87ba4", shape: "square" },
+    { color: "#008300", shape: "diamond" },
+  ];
+  const OTHER_STYLE = { color: "#8a857b", shape: "circle" };
+
+  const SENSOR_ORDER = ["Smaller", "1-inch", "1.4-inch", "Micro Four Thirds", "APS-C", "Full Frame", "Medium Format"];
+  const SENSOR_SHORT = { "Smaller": "<1\"", "1-inch": "1\"", "1.4-inch": "1.4\"", "Micro Four Thirds": "MFT", "APS-C": "APS-C", "Full Frame": "FF", "Medium Format": "MF" };
+  // "APS-C (DX)" -> "APS-C", "1/2.3-inch" -> "Smaller"
+  const sensorCat = v => {
+    if (typeof v !== "string") return null;
+    if (/^1\/[\d.]+/.test(v)) return "Smaller";
+    return SENSOR_ORDER.slice().sort((a, b) => b.length - a.length).find(k => v.startsWith(k)) || null;
+  };
+
+  const Y_OPTIONS = {
+    megapixels:   { label: "Megapixels",   kind: "linear",  fmt: v => `${+v.toFixed(1)} MP` },
+    burst_fps:    { label: "Burst rate",   kind: "linear",  fmt: v => `${+v.toFixed(1)} fps` },
+    release_year: { label: "Release year", kind: "linear",  fmt: v => String(Math.round(v)), integer: true },
+    weight_g:     { label: "Weight",       kind: "linear",  fmt: v => `${Math.round(v)} g` },
+    sensor:       { label: "Sensor size",  kind: "ordinal", fmt: v => v },
+    iso_max:      { label: "Max ISO",      kind: "log",     fmt: v => Math.round(v).toLocaleString() },
+  };
+
+  const numSort = (key, dir) => (a, b) => {
+    const av = a[key], bv = b[key];
+    if (av == null && bv == null) return a.price - b.price;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return (av - bv) * dir || a.price - b.price;
+  };
+  const SORTS = {
+    "price-asc":  { label: "Price: low to high",  fn: (a, b) => a.price - b.price },
+    "price-desc": { label: "Price: high to low",  fn: (a, b) => b.price - a.price },
+    "mp-desc":    { label: "Megapixels: most",    fn: numSort("megapixels", -1),   badge: c => c.megapixels != null && `${c.megapixels} MP` },
+    "fps-desc":   { label: "Burst rate: fastest", fn: numSort("burst_fps", -1),    badge: c => c.burst_fps != null && `${c.burst_fps} fps` },
+    "year-desc":  { label: "Newest first",        fn: numSort("release_year", -1), badge: c => c.release_year },
+    "weight-asc": { label: "Lightest first",      fn: numSort("weight_g", 1),      badge: c => c.weight_g != null && `${c.weight_g} g` },
+    "iso-desc":   { label: "Max ISO: highest",    fn: numSort("iso_max", -1),      badge: c => c.iso_max != null && `ISO ${c.iso_max.toLocaleString()}` },
+    "brand":      { label: "Brand A–Z",           fn: (a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) },
+  };
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
+  };
+
+  const state = {
+    cameras: [],
+    y: Y_OPTIONS[store.get("cs.y")] ? store.get("cs.y") : "megapixels",
+    type: "",
+    brands: new Set(),
+    sort: SORTS[store.get("cs.sort")] ? store.get("cs.sort") : "price-asc",
+    selected: null,
+    base: null,     // full data extent, in transformed units
+    view: null,     // current zoomed/panned extent
+    baseKey: "",
+  };
+  const brandStyles = {};
+
+  // ---------- helpers ----------
+  const $ = sel => document.querySelector(sel);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(svgNS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = (v, cur = "AUD") => {
+    try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).format(v); }
+    catch { return `${cur} ${Math.round(v).toLocaleString()}`; }
+  };
+  const EBAY_SITE = { AUD: "www.ebay.com.au", GBP: "www.ebay.co.uk", EUR: "www.ebay.de", CAD: "www.ebay.ca", USD: "www.ebay.com" };
+  const ebayUrl = c => `https://${EBAY_SITE[c.currency] || "www.ebay.com"}/sch/i.html?_nkw=${encodeURIComponent(`${c.brand} ${c.model}`)}`;
+  const initials = c => ((c.brand || "?")[0] + (c.model || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 1)).toUpperCase();
+  const styleOf = c => brandStyles[c.brand] || OTHER_STYLE;
+
+  function shapePath(shape, r) {
+    switch (shape) {
+      case "square":   { const s = r * 0.9; return `M${-s},${-s}H${s}V${s}H${-s}Z`; }
+      case "triangle": return `M0,${-r * 1.25}L${r * 1.15},${r * 0.8}L${-r * 1.15},${r * 0.8}Z`;
+      case "tridown":  return `M0,${r * 1.25}L${r * 1.15},${-r * 0.8}L${-r * 1.15},${-r * 0.8}Z`;
+      case "diamond":  return `M0,${-r * 1.3}L${r * 1.3},0L0,${r * 1.3}L${-r * 1.3},0Z`;
+      default:         return `M${-r},0A${r},${r} 0 1,0 ${r},0A${r},${r} 0 1,0 ${-r},0Z`;
+    }
+  }
+  const swatch = (c, size = 14) => {
+    const s = styleOf(c);
+    return `<svg width="${size}" height="${size}" viewBox="-8 -8 16 16" aria-hidden="true"><path d="${shapePath(s.shape, 5.5)}" fill="${s.color}"/></svg>`;
+  };
+  const thumbHTML = c => `<span class="thumb">${c.image
+    ? `<img src="${esc(c.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'initials',textContent:'${esc(initials(c))}'}))">`
+    : `<span class="initials">${esc(initials(c))}</span>`}</span>`;
+
+  function filtered() {
+    return state.cameras.filter(c =>
+      (!state.type || c.type === state.type) &&
+      (!state.brands.size || state.brands.has(c.brand)));
+  }
+  const yRaw = c => {
+    const v = c[state.y];
+    if (state.y === "sensor") return sensorCat(v);
+    return typeof v === "number" && isFinite(v) ? v : null;
+  };
+
+  // ---------- scales (positions use "transformed" units: log10 for log axes, index for ordinal) ----------
+  function niceStep(span, target) {
+    const raw = span / target;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const f = raw / mag;
+    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+  }
+  function linearTicks(a, b, target, integer) {
+    let step = niceStep(b - a, target);
+    if (integer) step = Math.max(1, Math.round(step));
+    const out = [];
+    for (let t = Math.ceil(a / step) * step; t <= b + 1e-9; t += step) out.push(+t.toFixed(10));
+    return out;
+  }
+  function logTicks(a, b, target) {
+    const within = t => { const l = Math.log10(t); return l >= a - 1e-9 && l <= b + 1e-9; };
+    const gen = mults => {
+      const out = [];
+      for (let e = Math.floor(a); e <= Math.ceil(b); e++) for (const m of mults) { const t = m * 10 ** e; if (within(t)) out.push(t); }
+      return out;
+    };
+    let ticks = gen([1, 2, 5]);
+    if (ticks.length < 3) ticks = gen([1, 1.5, 2, 3, 4, 5, 6, 8]);
+    if (ticks.length < 3) ticks = linearTicks(10 ** a, 10 ** b, target).filter(t => t > 0);
+    return ticks;
+  }
+
+  function axisSpec(kind, values, cats) {
+    // transform and padded full extent for one axis
+    if (kind === "ordinal") return { t: v => cats.indexOf(v), extent: [-0.5, cats.length - 0.5], cats };
+    const t = kind === "log" ? v => Math.log10(v) : v => v;
+    const ts = values.map(t);
+    let lo = Math.min(...ts), hi = Math.max(...ts);
+    if (lo === hi) { const d = kind === "log" ? 0.3 : Math.abs(lo) * 0.1 || 1; lo -= d; hi += d; }
+    const pad = (hi - lo) * 0.07;
+    return { t, extent: [lo - pad, hi + pad] };
+  }
+
+  // ---------- chart ----------
+  const chart = { W: 0, H: 0, m: null, pw: 0, ph: 0, xAxis: null, yAxis: null };
+
+  function ensureBase(pts) {
+    const opt = Y_OPTIONS[state.y];
+    const cats = opt.kind === "ordinal" ? SENSOR_ORDER.filter(s => pts.some(c => sensorCat(c.sensor) === s)) : null;
+    chart.xAxis = axisSpec("linear", pts.map(c => c.price));
+    chart.yAxis = axisSpec(opt.kind, pts.map(yRaw), cats);
+    // changing what's plotted resets the zoom
+    const key = [state.y, state.type, [...state.brands].sort().join(",")].join("|");
+    if (key !== state.baseKey) {
+      state.baseKey = key;
+      state.base = { x: chart.xAxis.extent.slice(), y: chart.yAxis.extent.slice() };
+      state.view = { x: state.base.x.slice(), y: state.base.y.slice() };
+    }
+  }
+
+  const px = t => chart.m.left + ((t - state.view.x[0]) / (state.view.x[1] - state.view.x[0])) * chart.pw;
+  const py = t => chart.m.top + chart.ph - ((t - state.view.y[0]) / (state.view.y[1] - state.view.y[0])) * chart.ph;
+  const isZoomed = () => !!state.base && ["x", "y"].some(k =>
+    Math.abs(state.view[k][0] - state.base[k][0]) > 1e-9 || Math.abs(state.view[k][1] - state.base[k][1]) > 1e-9);
+
+  function renderChart() {
+    const svg = $("#chart");
+    const wrap = $("#chart-wrap");
+    svg.replaceChildren();
+    hideTip();
+    wrap.querySelector(".empty")?.remove();
+
+    const opt = Y_OPTIONS[state.y];
+    const all = filtered();
+    const pts = all.filter(c => yRaw(c) !== null && typeof c.price === "number");
+    const missing = all.length - pts.length;
+    $("#chart-status").textContent = `${pts.length} camera${pts.length === 1 ? "" : "s"} shown` +
+      (missing ? ` · ${missing} without ${opt.label.toLowerCase()} data hidden` : "");
+
+    if (!pts.length) {
+      svg.setAttribute("height", 0);
+      const d = document.createElement("div");
+      d.className = "empty";
+      d.innerHTML = state.cameras.length ? "No cameras match these filters." : "No cameras yet — add some with <code>uv run CameraInput.py</code>";
+      svg.after(d);
+      updateZoomButtons(false);
+      return;
+    }
+
+    const cs = getComputedStyle(wrap);
+    const W = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const narrow = W < 600;
+    const H = narrow ? 420 : 540;
+    const m = { top: 30, right: narrow ? 14 : 24, bottom: 46, left: narrow ? 58 : 76 };
+    Object.assign(chart, { W, H, m, pw: W - m.left - m.right, ph: H - m.top - m.bottom });
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("height", H);
+
+    ensureBase(pts);
+    const { view } = state;
+    const cur = pts[0].currency;
+
+    const defs = el("defs", {}, svg);
+    el("rect", { x: m.left - 14, y: m.top - 14, width: chart.pw + 28, height: chart.ph + 14 }, el("clipPath", { id: "plot-clip" }, defs));
+
+    // grid + ticks
+    const g = el("g", {}, svg);
+    const xTicks = linearTicks(view.x[0], view.x[1], narrow ? 4 : 8);
+    for (const v of xTicks) {
+      const x = px(chart.xAxis.t(v));
+      if (x < m.left - 0.5 || x > W - m.right + 0.5) continue;
+      el("line", { class: "gridline", x1: x, x2: x, y1: m.top, y2: H - m.bottom }, g);
+      el("text", { class: "tick", x, y: H - m.bottom + 18, "text-anchor": "middle" }, g).textContent = money(v, cur);
+    }
+    let yTicks;
+    if (opt.kind === "ordinal") {
+      yTicks = [];
+      for (let i = Math.ceil(view.y[0]); i <= Math.floor(view.y[1]); i++) if (chart.yAxis.cats[i]) yTicks.push(chart.yAxis.cats[i]);
+    } else if (opt.kind === "log") yTicks = logTicks(view.y[0], view.y[1], 6);
+    else yTicks = linearTicks(view.y[0], view.y[1], narrow ? 5 : 6, opt.integer);
+    for (const v of yTicks) {
+      const y = py(chart.yAxis.t(v));
+      if (y < m.top - 0.5 || y > H - m.bottom + 0.5) continue;
+      el("line", { class: "gridline", x1: m.left, x2: W - m.right, y1: y, y2: y }, g);
+      const label = opt.kind === "ordinal" ? (narrow ? SENSOR_SHORT[v] : v) : opt.fmt(v);
+      el("text", { class: "tick", x: m.left - 10, y: y + 4, "text-anchor": "end" }, g).textContent = label;
+    }
+    el("line", { class: "axis", x1: m.left, x2: W - m.right, y1: H - m.bottom, y2: H - m.bottom }, g);
+    el("line", { class: "axis", x1: m.left, x2: m.left, y1: m.top, y2: H - m.bottom }, g);
+    el("text", { class: "axis-title", x: W - m.right, y: H - 8, "text-anchor": "end" }, g).textContent = "Price →";
+    el("text", { class: "axis-title", x: m.left - 10, y: m.top - 12, "text-anchor": "start" }, g).textContent = `↑ ${opt.label}`;
+
+    // positions; cameras landing on the same spot are spread into a small ring
+    const nodes = pts.map(c => ({ c, x: px(chart.xAxis.t(c.price)), y: py(chart.yAxis.t(yRaw(c))) }));
+    const grouped = new Set();
+    for (let i = 0; i < nodes.length; i++) {
+      if (grouped.has(i)) continue;
+      const group = [i];
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (!grouped.has(j) && Math.abs(nodes[j].x - nodes[i].x) < 3 && Math.abs(nodes[j].y - nodes[i].y) < 3) { group.push(j); grouped.add(j); }
+      }
+      if (group.length > 1) {
+        const r = 6 + group.length;
+        const cx = nodes[i].x, cy = nodes[i].y;
+        group.forEach((k, n) => {
+          const a = (n / group.length) * Math.PI * 2 - Math.PI / 2;
+          nodes[k].x = cx + Math.cos(a) * r;
+          nodes[k].y = cy + Math.sin(a) * r;
+        });
+      }
+    }
+
+    const marks = el("g", { "clip-path": "url(#plot-clip)" }, svg);
+    const R = narrow ? 5.5 : 6.5;
+    for (const n of nodes) {
+      const c = n.c, s = styleOf(c);
+      const pt = el("g", {
+        class: "pt" + (state.selected === c.id ? " selected" : ""),
+        transform: `translate(${n.x} ${n.y})`,
+        tabindex: 0, role: "button",
+        "aria-label": `${c.brand} ${c.model}, ${money(c.price, c.currency)}, ${opt.fmt(yRaw(c))}`,
+        "data-id": c.id,
+      }, marks);
+      el("circle", { class: "hit", r: 14 }, pt);
+      if (state.selected === c.id) el("circle", { class: "halo", r: R + 6 }, pt);
+      el("path", { class: "dot", d: shapePath(s.shape, R), fill: s.color }, pt);
+      pt.addEventListener("pointerenter", e => { if (!drag.active && e.pointerType !== "touch") showTip(n); });
+      pt.addEventListener("pointerleave", hideTip);
+      pt.addEventListener("focus", () => showTip(n));
+      pt.addEventListener("blur", hideTip);
+      pt.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(c.id, "chart"); } });
+    }
+    // selected mark on top, with a direct label
+    const selNode = nodes.find(n => n.c.id === state.selected);
+    if (selNode) {
+      marks.appendChild(marks.querySelector(`.pt[data-id="${CSS.escape(selNode.c.id)}"]`));
+      const right = selNode.x < W - m.right - 160;
+      el("text", { class: "sel-label", x: selNode.x + (right ? 16 : -16), y: selNode.y + 4.5, "text-anchor": right ? "start" : "end" }, marks)
+        .textContent = `${selNode.c.brand} ${selNode.c.model}`;
+    }
+    svg.classList.toggle("dimmed", !!selNode);
+    svg.classList.toggle("zoomed", isZoomed());
+    updateZoomButtons(true);
+  }
+
+  function updateZoomButtons(enabled) {
+    const z = enabled && isZoomed();
+    $("#zoom-reset").disabled = !z;
+    $("#zoom-out").disabled = !z;
+    $("#zoom-in").disabled = !enabled;
+  }
+
+  // ---------- tooltip ----------
+  function showTip(n) {
+    const tip = $("#tooltip"), wrap = $("#chart-wrap"), svg = $("#chart");
+    const c = n.c, opt = Y_OPTIONS[state.y];
+    tip.innerHTML = `
+      ${thumbHTML(c)}
+      <div>
+        <div class="brand">${swatch(c, 12)}${esc(c.brand)}</div>
+        <div class="name">${esc(c.model)}</div>
+        <div class="vals"><strong>${esc(money(c.price, c.currency))}</strong> · ${esc(opt.fmt(yRaw(c)))}</div>
+      </div>`;
+    const sr = svg.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    const ox = sr.left - wr.left, oy = sr.top - wr.top;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = ox + n.x + 18;
+    if (left + tw > wrap.clientWidth - 6) left = ox + n.x - 18 - tw;
+    left = Math.max(6, left);
+    const top = Math.min(Math.max(oy + n.y - th / 2, 6), oy + chart.H - th - 6);
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+    tip.classList.add("show");
+  }
+  function hideTip() { $("#tooltip").classList.remove("show"); }
+
+  // ---------- zoom & pan ----------
+  const MAX_ZOOM = 40;
+  let raf = 0;
+  const scheduleRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; renderChart(); }); };
+
+  function clampAxis(k) {
+    const [b0, b1] = state.base[k];
+    let [a, b] = state.view[k];
+    const baseSpan = b1 - b0;
+    const span = Math.min(baseSpan, Math.max(baseSpan / MAX_ZOOM, b - a));
+    const mid = (a + b) / 2;
+    a = mid - span / 2; b = mid + span / 2;
+    if (a < b0) { b += b0 - a; a = b0; }
+    if (b > b1) { a -= b - b1; b = b1; }
+    state.view[k] = [a, b];
+  }
+  function zoomAt(factor, cx = chart.m.left + chart.pw / 2, cy = chart.m.top + chart.ph / 2) {
+    if (!state.view) return;
+    const fx = (cx - chart.m.left) / chart.pw, fy = 1 - (cy - chart.m.top) / chart.ph;
+    for (const [k, f] of [["x", fx], ["y", fy]]) {
+      const [a, b] = state.view[k];
+      const t = a + f * (b - a);
+      state.view[k] = [t - (t - a) / factor, t + (b - t) / factor];
+      clampAxis(k);
+    }
+    scheduleRender();
+  }
+  function panBy(dx, dy) {
+    const sx = (state.view.x[1] - state.view.x[0]) / chart.pw;
+    const sy = (state.view.y[1] - state.view.y[0]) / chart.ph;
+    state.view.x = state.view.x.map(v => v - dx * sx);
+    state.view.y = state.view.y.map(v => v + dy * sy);
+    clampAxis("x"); clampAxis("y");
+    scheduleRender();
+  }
+  function resetView() {
+    if (!state.base) return;
+    state.view = { x: state.base.x.slice(), y: state.base.y.slice() };
+    scheduleRender();
+  }
+
+  const drag = { active: false, pointers: new Map(), start: null, downId: null, pinchDist: 0 };
+  function svgPoint(e) {
+    const r = $("#chart").getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (chart.W / r.width), y: (e.clientY - r.top) * (chart.H / r.height) };
+  }
+  function setupInteraction() {
+    const svg = $("#chart");
+    svg.addEventListener("pointerdown", e => {
+      if (e.button !== 0) return;
+      drag.pointers.set(e.pointerId, svgPoint(e));
+      if (drag.pointers.size === 1) {
+        drag.start = svgPoint(e);
+        drag.downId = e.target.closest?.(".pt")?.dataset.id || null;
+        drag.active = false;
+      } else if (drag.pointers.size === 2) {
+        const [p1, p2] = [...drag.pointers.values()];
+        drag.pinchDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        drag.downId = null;
+      }
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!drag.pointers.has(e.pointerId)) return;
+      const prev = drag.pointers.get(e.pointerId);
+      const p = svgPoint(e);
+      drag.pointers.set(e.pointerId, p);
+      if (drag.pointers.size === 2) {
+        const [p1, p2] = [...drag.pointers.values()];
+        const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        if (drag.pinchDist) zoomAt(d / drag.pinchDist, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+        drag.pinchDist = d;
+        drag.active = true;
+        return;
+      }
+      if (!drag.active) {
+        // a one-finger swipe at full view scrolls the page rather than panning
+        if (e.pointerType === "touch" && !isZoomed()) return;
+        if (Math.hypot(p.x - drag.start.x, p.y - drag.start.y) < 4) return;
+        drag.active = true;
+        svg.setPointerCapture(e.pointerId);
+        svg.classList.add("dragging");
+        hideTip();
+      }
+      panBy(p.x - prev.x, p.y - prev.y);
+    });
+    const end = e => {
+      if (!drag.pointers.has(e.pointerId)) return;
+      drag.pointers.delete(e.pointerId);
+      if (drag.pointers.size) return;
+      if (!drag.active && e.type === "pointerup") {
+        if (drag.downId) select(drag.downId, "chart");
+        else if (state.selected) select(null);
+      }
+      drag.active = false; drag.downId = null; drag.pinchDist = 0;
+      svg.classList.remove("dragging");
+    };
+    svg.addEventListener("pointerup", end);
+    svg.addEventListener("pointercancel", end);
+
+    // scroll (or trackpad pinch) zooms around the cursor; sideways trackpad swipes pan
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      const unit = e.deltaMode ? 16 : 1;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && !e.ctrlKey) {
+        if (isZoomed()) panBy(-e.deltaX * unit, 0);
+        return;
+      }
+      const p = svgPoint(e);
+      zoomAt(Math.exp(-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0025)), p.x, p.y);
+    }, { passive: false });
+    svg.addEventListener("dblclick", e => {
+      if (e.target.closest(".pt")) return;
+      const p = svgPoint(e);
+      zoomAt(e.shiftKey ? 0.5 : 2, p.x, p.y);
+    });
+
+    $("#zoom-in").addEventListener("click", () => zoomAt(1.6));
+    $("#zoom-out").addEventListener("click", () => zoomAt(1 / 1.6));
+    $("#zoom-reset").addEventListener("click", resetView);
+  }
+
+  // ---------- detail ----------
+  function renderDetail() {
+    const box = $("#detail");
+    const c = state.cameras.find(x => x.id === state.selected);
+    box.hidden = !c;
+    if (!c) {
+      box.replaceChildren();
+      return;
+    }
+    const specs = [
+      ["Sensor", c.sensor],
+      ["Resolution", c.megapixels != null && `${c.megapixels} MP`],
+      ["Lens mount", c.mount],
+      ["Stabilisation", c.ibis == null ? null : c.ibis ? "In-body (IBIS)" : "None"],
+      ["Max video", c.max_video],
+      ["Max ISO", c.iso_max != null && c.iso_max.toLocaleString()],
+      ["Burst", c.burst_fps != null && `${c.burst_fps} fps`],
+      ["Weight", c.weight_g != null && `${c.weight_g} g`],
+      ["Viewfinder", c.viewfinder],
+      ["Released", c.release_year],
+    ].filter(([, v]) => v !== null && v !== undefined && v !== false && v !== "");
+    const byPrice = state.cameras.slice().sort((a, b) => a.price - b.price);
+    const rank = byPrice.findIndex(x => x.id === c.id) + 1;
+    const rankText = rank === 1 ? "Cheapest option" : rank === byPrice.length ? "Most expensive option" : `#${rank} of ${byPrice.length} by price`;
+
+    box.innerHTML = `
+      <div class="detail detail-enter">
+        <div class="detail-media">${thumbHTML(c)}</div>
+        <div class="detail-main">
+          <div class="detail-top">
+            <span class="brand-pill">${swatch(c)}${esc(c.brand)}</span>
+            <button type="button" class="icon-btn close-btn" id="detail-close" aria-label="Close details">×</button>
+          </div>
+          <div class="detail-head">
+            <div class="title-row">
+              <h2 id="detail-title">${esc(c.model)}</h2>
+              <span class="price-big">${esc(money(c.price, c.currency))}</span>
+            </div>
+            ${c.link && /^https?:\/\//i.test(c.link) ? `<a class="btn-primary btn-product" href="${esc(c.link)}" target="_blank" rel="noopener"><span class="label-long">View product page</span><span class="label-short">Product page</span> <span aria-hidden="true">↗</span></a>` : ""}
+            <div class="sub-row">
+              <span class="sub">${esc([c.type, c.release_year].filter(Boolean).join(" · "))}</span>
+              <span class="rank">${esc(rankText)}</span>
+            </div>
+            <a class="btn-primary btn-ebay" href="${esc(ebayUrl(c))}" target="_blank" rel="noopener">Search on eBay <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="specs">
+            ${specs.map(([k, v]) => `<div class="spec"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}
+          </div>
+          ${c.notes ? `<div class="notes"><div class="eyebrow">Notes</div><p>${esc(c.notes)}</p></div>` : ""}
+        </div>
+      </div>`;
+    $("#detail-close").addEventListener("click", () => select(null));
+  }
+
+  function select(id, from) {
+    state.selected = id && state.cameras.some(c => c.id === id) ? id : null;
+    const hash = state.selected ? `#cam=${encodeURIComponent(state.selected)}` : "";
+    if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
+    renderDetail();
+    renderChart();
+    renderList();
+    if (state.selected && from) {
+      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      $("#detail").scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: from === "list" ? "start" : "nearest" });
+    }
+  }
+
+  // ---------- list ----------
+  function renderList() {
+    const s = SORTS[state.sort];
+    const list = filtered().slice().sort(s.fn);
+    $("#list-count").textContent = list.length;
+    $("#grid").innerHTML = list.map(c => {
+      const badge = s.badge && s.badge(c);
+      return `
+      <button type="button" class="cam" data-id="${esc(c.id)}" aria-current="${state.selected === c.id}">
+        ${thumbHTML(c)}
+        <span class="brand">${swatch(c, 12)}${esc(c.brand)}</span>
+        <span class="model">${esc(c.model)}</span>
+        <span class="meta">${esc([c.type, c.sensor, c.megapixels != null && `${c.megapixels} MP`].filter(Boolean).join(" · "))}</span>
+        <span class="row"><span class="price">${esc(money(c.price, c.currency))}</span>${badge ? `<span class="sortval">${esc(badge)}</span>` : ""}</span>
+      </button>`;
+    }).join("") || `<p class="empty" style="grid-column:1/-1">No cameras match these filters.</p>`;
+  }
+
+  // ---------- controls ----------
+  function renderLegend() {
+    const counts = {};
+    for (const c of state.cameras) if (!state.type || c.type === state.type) counts[c.brand] = (counts[c.brand] || 0) + 1;
+    const legend = $("#legend");
+    legend.classList.toggle("filtering", state.brands.size > 0);
+    legend.innerHTML = Object.keys(brandStyles).sort().map(b => `
+      <button type="button" class="chip" aria-pressed="${state.brands.has(b)}" data-brand="${esc(b)}">
+        ${swatch({ brand: b })}${esc(b)} <span class="count">${counts[b] || 0}</span>
+      </button>`).join("") +
+      (state.brands.size ? `<button type="button" class="clear" id="clear-brands">Show all brands</button>` : "");
+  }
+
+  function applyFilters() {
+    renderLegend();
+    renderChart();
+    renderList();
+  }
+
+  function setupControls() {
+    // brand styles are assigned once, by name, so colours never shift when filtering
+    let extra = 0;
+    for (const b of [...new Set(state.cameras.map(c => c.brand))].sort()) {
+      brandStyles[b] = BRAND_STYLE[b] || EXTRA_STYLES[extra++] || OTHER_STYLE;
+    }
+
+    const ySel = $("#y-select");
+    ySel.innerHTML = Object.entries(Y_OPTIONS).map(([k, o]) => `<option value="${k}">${o.label}</option>`).join("");
+    ySel.value = state.y;
+    ySel.addEventListener("change", () => { state.y = ySel.value; store.set("cs.y", state.y); renderChart(); });
+
+
+    const types = [...new Set(state.cameras.map(c => c.type).filter(Boolean))].sort();
+    const seg = $("#type-seg");
+    seg.innerHTML = [["", "All"], ...types.map(t => [t, t])]
+      .map(([v, l]) => `<button type="button" data-type="${esc(v)}" aria-pressed="${state.type === v}">${esc(l)}</button>`).join("");
+    seg.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      state.type = b.dataset.type;
+      seg.querySelectorAll("button").forEach(o => o.setAttribute("aria-pressed", o === b));
+      applyFilters();
+    });
+
+    $("#legend").addEventListener("click", e => {
+      if (e.target.closest("#clear-brands")) { state.brands.clear(); applyFilters(); return; }
+      const b = e.target.closest(".chip"); if (!b) return;
+      const brand = b.dataset.brand;
+      state.brands.has(brand) ? state.brands.delete(brand) : state.brands.add(brand);
+      applyFilters();
+    });
+
+    const sortSel = $("#sort-select");
+    sortSel.innerHTML = Object.entries(SORTS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join("");
+    sortSel.value = state.sort;
+    sortSel.addEventListener("change", () => { state.sort = sortSel.value; store.set("cs.sort", state.sort); renderList(); });
+
+    $("#grid").addEventListener("click", e => {
+      const b = e.target.closest(".cam"); if (b) select(b.dataset.id, "list");
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && state.selected) select(null);
+    });
+
+    setupInteraction();
+    let lastW = 0;
+    new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width;
+      if (Math.abs(w - lastW) > 1) { lastW = w; renderChart(); }
+    }).observe($("#chart-wrap"));
+  }
+
+  // ---------- boot ----------
+  function showError(msg) {
+    $("#chart").setAttribute("height", 0);
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.innerHTML = msg;
+    $("#chart").after(d);
+  }
+
+  fetch("cameras.json", { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => {
+      state.cameras = (data.cameras || []).filter(c => c && c.id && c.brand && c.model);
+      setupControls();
+      renderLegend();
+      const fromHash = () => {
+        const m = location.hash.match(/^#cam=(.+)$/);
+        select(m ? decodeURIComponent(m[1]) : null, m ? "hash" : null);
+      };
+      fromHash();
+      window.addEventListener("hashchange", fromHash);
+    })
+    .catch(() => showError(
+      location.protocol === "file:"
+        ? "Browsers block loading cameras.json from a file:// page.<br><br>Serve the folder instead: <code>uv run python -m http.server 8000</code> then open <code>http://localhost:8000</code>"
+        : "Couldn't load cameras.json."));
+})();
+</script>
+</body>
+</html>
